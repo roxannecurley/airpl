@@ -12,7 +12,7 @@ namespace AirplanePlanner.Models
         private string _flightStatus;
         private int _id;
 
-        public Flight(Time departureTime, string departureCity, string arrivalCity, string flightStatus, int id = 0)
+        public Flight(DateTime departureTime, string departureCity, string arrivalCity, string flightStatus, int id = 0)
         {
             _departureTime = departureTime;
             _departureCity = departureCity;
@@ -44,7 +44,7 @@ namespace AirplanePlanner.Models
             return this.GetDepartureCity().GetHashCode();
         }
 
-        public string GetDepartureTime()
+        public DateTime GetDepartureTime()
         {
             return _departureTime;
         }
@@ -79,22 +79,22 @@ namespace AirplanePlanner.Models
 
             MySqlParameter departureTime = new MySqlParameter();
             departureTime.ParameterName = "@departure_time";
-            departureTime.Value = this._departureTime;
+            departureTime.Value = _departureTime;
             cmd.Parameters.Add(departureTime);
 
             MySqlParameter departureCity = new MySqlParameter();
             departureCity.ParameterName = "@departure_city";
-            departureCity.Value = this._departureCity;
+            departureCity.Value = _departureCity;
             cmd.Parameters.Add(departureCity);
 
             MySqlParameter arrivalCity = new MySqlParameter();
             arrivalCity.ParameterName = "@arrival_city";
-            arrivalCity.Value = this._arrivalCity;
+            arrivalCity.Value = _arrivalCity;
             cmd.Parameters.Add(arrivalCity);
 
             MySqlParameter flightStatus = new MySqlParameter();
             flightStatus.ParameterName = "@flight_status";
-            flightStatus.Value = this._flightStatus;
+            flightStatus.Value = _flightStatus;
             cmd.Parameters.Add(flightStatus);
 
             cmd.ExecuteNonQuery();
@@ -119,7 +119,7 @@ namespace AirplanePlanner.Models
             while(rdr.Read())
             {
                 int flightId = rdr.GetInt32(0);
-                DateTime departureTime = rdr.GetTime(1);
+                DateTime departureTime = rdr.GetDateTime(1);
                 string departureCity = rdr.GetString(2);
                 string arrivalCity = rdr.GetString(3);
                 string flightStatus = rdr.GetString(4);
@@ -149,7 +149,8 @@ namespace AirplanePlanner.Models
             cmd.Parameters.Add(searchId);
 
             var rdr = cmd.ExecuteReader() as MySqlDataReader;
-            DateTime depatureTime = DateTime.MinValue;
+            int flightId = 0;
+            DateTime departureTime = DateTime.MinValue;
             string departureCity = "";
             string arrivalCity = "";
             string flightStatus = "";
@@ -157,7 +158,7 @@ namespace AirplanePlanner.Models
             while(rdr.Read())
             {
               flightId = rdr.GetInt32(0);
-              departureTime = rdr.GetTime(1);
+              departureTime = rdr.GetDateTime(1);
               departureCity = rdr.GetString(2);
               arrivalCity = rdr.GetString(3);
               flightStatus = rdr.GetString(4);
@@ -179,9 +180,9 @@ namespace AirplanePlanner.Models
             MySqlConnection conn = DB.Connection();
             conn.Open();
             var cmd = conn.CreateCommand() as MySqlCommand;
-            cmd.CommandText = @"TRUNCATE TABLE flights;";
+            cmd.CommandText = @"DELETE FROM flights;";
             cmd.ExecuteNonQuery();
-            
+
             conn.Close();
             if (conn != null)
             {
@@ -189,25 +190,51 @@ namespace AirplanePlanner.Models
             }
         }
 
-        public void UpdateDescription(string newDescription)
+        public void UpdateDepartureCity(string newDepartureCity)
         {
             MySqlConnection conn = DB.Connection();
             conn.Open();
             var cmd = conn.CreateCommand() as MySqlCommand;
-            cmd.CommandText = @"UPDATE flights SET description = @newDescription WHERE id = @searchId;";
+            cmd.CommandText = @"UPDATE flights SET departure_city = @newDepartureCity WHERE id = @findId;";
 
-            MySqlParameter searchId = new MySqlParameter();
-            searchId.ParameterName = "@searchId";
-            searchId.Value = _id;
-            cmd.Parameters.Add(searchId);
+            MySqlParameter findId = new MySqlParameter();
+            findId.ParameterName = "@findId";
+            findId.Value = _id;
+            cmd.Parameters.Add(findId);
 
-            MySqlParameter description = new MySqlParameter();
-            description.ParameterName = "@newDescription";
-            description.Value = newDescription;
-            cmd.Parameters.Add(description);
+            MySqlParameter departureCityParameter = new MySqlParameter();
+            departureCityParameter.ParameterName = "@newDepartureCity";
+            departureCityParameter.Value = newDepartureCity;
+            cmd.Parameters.Add(departureCityParameter);
 
             cmd.ExecuteNonQuery();
-            _description = newDescription;
+            _departureCity = newDepartureCity;
+            conn.Close();
+            if (conn != null)
+            {
+                conn.Dispose();
+            }
+        }
+
+        public void UpdateArrivalCity(string newArrivalCity)
+        {
+            MySqlConnection conn = DB.Connection();
+            conn.Open();
+            var cmd = conn.CreateCommand() as MySqlCommand;
+            cmd.CommandText = @"UPDATE flights SET arrival_city = @newArrivalCity WHERE id = @findId;";
+
+            MySqlParameter findId = new MySqlParameter();
+            findId.ParameterName = "@findId";
+            findId.Value = _id;
+            cmd.Parameters.Add(findId);
+
+            MySqlParameter arrivalCityParameter = new MySqlParameter();
+            arrivalCityParameter.ParameterName = "@newArrivalCity";
+            arrivalCityParameter.Value = newArrivalCity;
+            cmd.Parameters.Add(arrivalCityParameter);
+
+            cmd.ExecuteNonQuery();
+            _arrivalCity = newArrivalCity;
             conn.Close();
             if (conn != null)
             {

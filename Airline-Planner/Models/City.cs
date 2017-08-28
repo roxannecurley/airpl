@@ -24,8 +24,8 @@ namespace AirplanePlanner.Models
             else
             {
                 City newCity = (City) otherCity;
-                bool idEquality = (this.GetId() == otherCity.GetId());
-                bool nameEquality =(this.GetName() == otherCity.GetName());
+                bool idEquality = (this.GetId() == newCity.GetId());
+                bool nameEquality =(this.GetName() == newCity.GetName());
                 return (idEquality && nameEquality);
             }
         }
@@ -60,8 +60,8 @@ namespace AirplanePlanner.Models
 
             cmd.ExecuteNonQuery();
             _id = (int) cmd.LastInsertedId;
-            conn.Close();
 
+            conn.Close();
             if (conn != null)
             {
                 conn.Dispose();
@@ -100,12 +100,12 @@ namespace AirplanePlanner.Models
             MySqlConnection conn = DB.Connection();
             conn.Open();
             var cmd = conn.CreateCommand() as MySqlCommand;
-            cmd.CommandText = @"SELECT * FROM cities WHERE id = (@searchId);";
+            cmd.CommandText = @"SELECT * FROM cities WHERE id = (@findId);";
 
-            MySqlParameter searchId = new MySqlParameter();
-            searchId.ParameterName = "@searchId";
-            searchId.Value = id;
-            cmd.Parameters.Add(searchId);
+            MySqlParameter findId = new MySqlParameter();
+            findId.ParameterName = "@findId";
+            findId.Value = id;
+            cmd.Parameters.Add(findId);
 
             var rdr = cmd.ExecuteReader() as MySqlDataReader;
             int cityId = 0;
@@ -126,12 +126,13 @@ namespace AirplanePlanner.Models
 
             return newCity;
         }
+
         public static void DeleteAll()
         {
             MySqlConnection conn = DB.Connection();
             conn.Open();
             var cmd = conn.CreateCommand() as MySqlCommand;
-            cmd.CommandText = @"TRUNCATE TABLE cities;";
+            cmd.CommandText = @"DELETE FROM cities;";
 
             cmd.ExecuteNonQuery();
             conn.Close();
@@ -148,7 +149,7 @@ namespace AirplanePlanner.Models
             MySqlConnection conn = DB.Connection();
             conn.Open();
             var cmd = conn.CreateCommand() as MySqlCommand;
-            cmd.CommandText = @"SELECT * FROM flight WHERE city_id = @city_id;";
+            cmd.CommandText = @"SELECT flight_id FROM cities_flights WHERE city_id = @city_id;";
 
             MySqlParameter cityIdParameter = new MySqlParameter();
             cityIdParameter.ParameterName = "@city_id";
@@ -165,18 +166,31 @@ namespace AirplanePlanner.Models
             }
             rdr.Dispose();
 
-            
-
-            var flightQueryRdr = cmd.ExecuteReader() as MySqlDataReader;
-            while(flightQueryRdr.Read())
+            foreach (int flightId in flightIds)
             {
-              int flightId = flightQueryRdr.GetInt32(0);
-              string flightDescription = flightQueryRdr.GetString(1);
-              int flightCategoryId = flightQueryRdr.GetInt32(2);
-              Flight foundFlight = new Flight(flightDescription, flightCategoryId, flightId);
-              allCityFlights.Add(foundFlight);
+                var flightQueryCmd = conn.CreateCommand() as MySqlCommand;
+                flightQueryCmd.CommandText = @"SELECT * FROM flights where id = @flightId;";
+
+                MySqlParameter flightIdParameter = new MySqlParameter();
+                flightIdParameter.ParameterName = "@flightId";
+                flightIdParameter.Value = flightId;
+                flightQueryCmd.Parameters.Add(flightIdParameter);
+
+                var flightQueryRdr = flightQueryCmd.ExecuteReader() as MySqlDataReader;
+
+                while(flightQueryRdr.Read())
+                {
+                  int foundFlightId = flightQueryRdr.GetInt32(0);
+                  DateTime flightDepartureTime = flightQueryRdr.GetDateTime(1);
+                  string flightDepartureCity = flightQueryRdr.GetString(2);
+                  string flightArrivalCity = flightQueryRdr.GetString(3);
+                  string flightFlightStatus = flightQueryRdr.GetString(4);
+                  Flight foundFlight = new Flight(flightDepartureTime, flightDepartureCity, flightArrivalCity, flightFlightStatus, foundFlightId);
+                  allCityFlights.Add(foundFlight);
+                }
+                flightQueryRdr.Dispose();
+
             }
-            flightQueryRdr.Dispose();
 
             conn.Close();
             if (conn != null)
